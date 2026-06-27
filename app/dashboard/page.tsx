@@ -1,9 +1,10 @@
 'use client';
 
-import { usePrivy } from '@privy-io/react-auth';
+import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 import TokenBanner from '../components/TokenBanner';
+import Image from 'next/image';
 
 const trendingTokens = [
   { symbol: 'BONK', change: 24.5, price: '0.000024' },
@@ -16,17 +17,24 @@ const trendingTokens = [
 ];
 
 export default function Dashboard() {
-  const { ready, authenticated, logout } = usePrivy();
+  const { ready, authenticated } = usePrivy();
+  const { wallets } = useWallets();
   const router = useRouter();
 
-  // If NOT logged in → go to login page
+  const solanaWallet = wallets.find(w => w.walletClientType === 'privy');
+  const address = solanaWallet?.address || '';
+
+  const truncateAddress = (addr: string) => {
+    if (!addr) return 'Connecting...';
+    return addr.slice(0, 4) + '...' + addr.slice(-4);
+  };
+
   useEffect(() => {
     if (ready && !authenticated) {
       router.push('/');
     }
   }, [ready, authenticated, router]);
 
-  // Show loading while Privy initializes
   if (!ready) {
     return (
       <div style={{
@@ -64,14 +72,75 @@ export default function Dashboard() {
         alignItems: 'center',
         borderBottom: '1px solid #334155',
       }}>
+
+        {/* Left - Logo */}
         <h1 style={{
           fontSize: '24px',
           fontWeight: 'bold',
           color: '#F8FAFC',
           margin: 0,
         }}>
-          ⚡ ChadSwap
+          <div style={{
+            display: 'flex',
+            alignItems: 'center',
+            gap: '10px',
+          }}>
+            <Image
+              src="/dark.png"
+              alt="ChadSwap"
+              width={36}
+              height={36}
+              style={{ borderRadius: '8px' }}
+            />
+            <span style={{
+              fontSize: '20px',
+              fontWeight: 'bold',
+              color: '#F8FAFC',
+            }}>
+              ChadSwap
+            </span>
+          </div>
         </h1>
+
+        {/* Center - Wallet Address ← THIS WAS MISSING */}
+        <div style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '10px',
+          backgroundColor: '#0F172A',
+          padding: '8px 16px',
+          borderRadius: '20px',
+          border: '1px solid #334155',
+        }}>
+          {/* Green dot = connected */}
+          <div style={{
+            width: '8px',
+            height: '8px',
+            borderRadius: '50%',
+            backgroundColor: '#22C55E',
+          }} />
+          {/* Wallet address */}
+          <span style={{
+            color: '#F8FAFC',
+            fontSize: '14px',
+            fontFamily: 'monospace',
+          }}>
+            {truncateAddress(address)}
+          </span>
+          {/* SOL badge */}
+          <span style={{
+            backgroundColor: '#9945FF',
+            color: 'white',
+            fontSize: '11px',
+            padding: '2px 8px',
+            borderRadius: '10px',
+            fontWeight: 'bold',
+          }}>
+            SOL
+          </span>
+        </div>
+
+        {/* Right - Logout */}
         <button
           onClick={() => window.location.href = '/logout'}
           style={{
@@ -128,7 +197,6 @@ export default function Dashboard() {
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
-                transition: 'background-color 0.2s',
               }}
               onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
               onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
@@ -203,7 +271,6 @@ export default function Dashboard() {
             Trade
           </h2>
 
-          {/* Buy/Sell Toggle */}
           <div style={{
             display: 'flex',
             marginBottom: '16px',
@@ -212,37 +279,24 @@ export default function Dashboard() {
             border: '1px solid #334155',
           }}>
             <button style={{
-              flex: 1,
-              padding: '10px',
+              flex: 1, padding: '10px',
               backgroundColor: '#22C55E',
-              color: 'white',
-              border: 'none',
-              cursor: 'pointer',
-              fontWeight: 'bold',
+              color: 'white', border: 'none',
+              cursor: 'pointer', fontWeight: 'bold',
               fontSize: '14px',
-            }}>
-              BUY
-            </button>
+            }}>BUY</button>
             <button style={{
-              flex: 1,
-              padding: '10px',
+              flex: 1, padding: '10px',
               backgroundColor: '#0F172A',
-              color: '#94A3B8',
-              border: 'none',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}>
-              SELL
-            </button>
+              color: '#94A3B8', border: 'none',
+              cursor: 'pointer', fontSize: '14px',
+            }}>SELL</button>
           </div>
 
-          {/* Amount Input */}
           <div style={{ marginBottom: '12px' }}>
             <label style={{
-              fontSize: '12px',
-              color: '#94A3B8',
-              display: 'block',
-              marginBottom: '6px',
+              fontSize: '12px', color: '#94A3B8',
+              display: 'block', marginBottom: '6px',
             }}>
               Amount (SOL)
             </label>
@@ -250,51 +304,31 @@ export default function Dashboard() {
               type="number"
               placeholder="0.00"
               style={{
-                width: '100%',
-                padding: '12px',
+                width: '100%', padding: '12px',
                 backgroundColor: '#0F172A',
                 border: '1px solid #334155',
-                borderRadius: '8px',
-                color: '#F8FAFC',
-                fontSize: '16px',
-                boxSizing: 'border-box',
+                borderRadius: '8px', color: '#F8FAFC',
+                fontSize: '16px', boxSizing: 'border-box',
               }}
             />
           </div>
 
-          {/* Quick amounts */}
-          <div style={{
-            display: 'flex',
-            gap: '8px',
-            marginBottom: '16px',
-          }}>
+          <div style={{ display: 'flex', gap: '8px', marginBottom: '16px' }}>
             {['0.1', '0.5', '1', '5'].map(amt => (
               <button key={amt} style={{
-                flex: 1,
-                padding: '6px',
-                backgroundColor: '#0F172A',
-                color: '#94A3B8',
-                border: '1px solid #334155',
-                borderRadius: '6px',
-                cursor: 'pointer',
-                fontSize: '12px',
-              }}>
-                {amt}
-              </button>
+                flex: 1, padding: '6px',
+                backgroundColor: '#0F172A', color: '#94A3B8',
+                border: '1px solid #334155', borderRadius: '6px',
+                cursor: 'pointer', fontSize: '12px',
+              }}>{amt}</button>
             ))}
           </div>
 
-          {/* Buy Button */}
           <button style={{
-            width: '100%',
-            padding: '14px',
-            backgroundColor: '#22C55E',
-            color: 'white',
-            border: 'none',
-            borderRadius: '8px',
-            fontSize: '16px',
-            fontWeight: 'bold',
-            cursor: 'pointer',
+            width: '100%', padding: '14px',
+            backgroundColor: '#22C55E', color: 'white',
+            border: 'none', borderRadius: '8px',
+            fontSize: '16px', fontWeight: 'bold', cursor: 'pointer',
           }}>
             Buy Token
           </button>
