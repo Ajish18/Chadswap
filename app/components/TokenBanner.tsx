@@ -25,6 +25,7 @@ export default function TokenBanner({ tokens, direction = 'left' }: TokenBannerP
             marginRight: '48px',
             fontSize: '14px',
             fontWeight: '600',
+            cursor: 'pointer',
           }}>
             <span style={{ color: '#F8FAFC' }}>{token.symbol}</span>
             <span style={{ color: '#94A3B8', fontSize: '12px' }}>${token.price}</span>

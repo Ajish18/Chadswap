@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import TokenBanner from '../components/TokenBanner';
+import PriceChart from '../components/PriceChart';
 
 // Token type definition
 interface Token {
@@ -210,21 +211,22 @@ export default function Dashboard() {
             </div>
           ) : (
             tokens.slice(0, 15).map((token) => (
-              <div
-                key={token.address}
-                style={{
-                  padding: '12px',
-                  marginBottom: '8px',
-                  backgroundColor: '#0F172A',
-                  borderRadius: '8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  justifyContent: 'space-between',
-                  alignItems: 'center',
-                }}
-                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
-                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
-              >
+                <div
+                  key={token.address}
+                  onClick={() => router.push(`/trade/${token.symbol}`)}
+                  style={{
+                    padding: '12px',
+                    marginBottom: '8px',
+                    backgroundColor: '#0F172A',
+                    borderRadius: '8px',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                  }}
+                  onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                  onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
+                >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                   {/* Token Logo */}
                   {token.logoURI && (
@@ -270,26 +272,28 @@ export default function Dashboard() {
           display: 'flex',
           flexDirection: 'column',
           overflow: 'hidden',
+          minHeight: 0,
         }}>
           <h2 style={{
             fontSize: '20px',
             marginBottom: '16px',
             marginTop: 0,
             color: '#F8FAFC',
+            flexShrink: 0,
           }}>
-            Select a token to view chart
+            SOL / USD
           </h2>
           <div style={{
             flex: 1,
             backgroundColor: '#1E293B',
             borderRadius: '12px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: '#94A3B8',
-            fontSize: '18px',
+            overflow: 'hidden',
+            minHeight: '400px',
           }}>
-            📈 Chart will load here
+            <PriceChart
+              address="So11111111111111111111111111111111111111112"
+              symbol="SOL"
+            />
           </div>
         </div>
 
