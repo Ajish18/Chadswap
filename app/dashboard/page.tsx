@@ -2,38 +2,62 @@
 
 import { usePrivy, useWallets } from '@privy-io/react-auth';
 import { useRouter } from 'next/navigation';
-import { useEffect } from 'react';
-import TokenBanner from '../components/TokenBanner';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
+import TokenBanner from '../components/TokenBanner';
 
-const trendingTokens = [
-  { symbol: 'BONK', change: 24.5, price: '0.000024' },
-  { symbol: 'WIF', change: 18.2, price: '2.84' },
-  { symbol: 'POPCAT', change: 31.7, price: '0.87' },
-  { symbol: 'MEW', change: 12.4, price: '0.0089' },
-  { symbol: 'MYRO', change: -8.9, price: '0.12' },
-  { symbol: 'BOME', change: -5.2, price: '0.0034' },
-  { symbol: 'SLERF', change: 19.3, price: '0.45' },
-];
+// Token type definition
+interface Token {
+  address: string;
+  symbol: string;
+  name: string;
+  price: number;
+  price24hChangePercent: number;
+  logoURI: string;
+  volume24hUSD: number;
+}
 
 export default function Dashboard() {
   const { ready, authenticated } = usePrivy();
   const { wallets } = useWallets();
   const router = useRouter();
 
+  // useState — stores our token list
+  const [tokens, setTokens] = useState<Token[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Wallet address
   const solanaWallet = wallets.find(w => w.walletClientType === 'privy');
   const address = solanaWallet?.address || '';
-
   const truncateAddress = (addr: string) => {
     if (!addr) return 'Connecting...';
     return addr.slice(0, 4) + '...' + addr.slice(-4);
   };
 
+  // Redirect if not logged in
   useEffect(() => {
     if (ready && !authenticated) {
       router.push('/');
     }
   }, [ready, authenticated, router]);
+
+  // Fetch real tokens from Birdeye
+  useEffect(() => {
+    const fetchTokens = async () => {
+      try {
+        const res = await fetch('/api/tokens');
+        const data = await res.json();
+        if (data.data?.tokens) {
+          setTokens(data.data.tokens);
+        }
+      } catch (error) {
+        console.error('Failed to fetch tokens:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchTokens();
+  }, []);
 
   if (!ready) {
     return (
@@ -51,6 +75,15 @@ export default function Dashboard() {
     );
   }
 
+  // Format tokens for banner
+  const bannerTokens = tokens.slice(0, 10).map(t => ({
+    symbol: t.symbol,
+    change: t.price24hChangePercent,
+    price: t.price < 0.01
+      ? t.price.toFixed(8)
+      : t.price.toFixed(4),
+  }));
+
   return (
     <div style={{
       minHeight: '100vh',
@@ -60,8 +93,10 @@ export default function Dashboard() {
       flexDirection: 'column',
     }}>
 
-      {/* Top Banner */}
-      <TokenBanner tokens={trendingTokens} direction="left" />
+      {/* Top Banner - Real Data */}
+      {bannerTokens.length > 0 && (
+        <TokenBanner tokens={bannerTokens} direction="left" />
+      )}
 
       {/* Navbar */}
       <div style={{
@@ -72,37 +107,24 @@ export default function Dashboard() {
         alignItems: 'center',
         borderBottom: '1px solid #334155',
       }}>
-
-        {/* Left - Logo */}
-        <h1 style={{
-          fontSize: '24px',
-          fontWeight: 'bold',
-          color: '#F8FAFC',
-          margin: 0,
-        }}>
-          <div style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          <Image
+            src="/dark.png"
+            alt="ChadSwap"
+            width={36}
+            height={36}
+            style={{ borderRadius: '8px' }}
+          />
+          <span style={{
+            fontSize: '20px',
+            fontWeight: 'bold',
+            color: '#F8FAFC',
           }}>
-            <Image
-              src="/dark.png"
-              alt="ChadSwap"
-              width={36}
-              height={36}
-              style={{ borderRadius: '8px' }}
-            />
-            <span style={{
-              fontSize: '20px',
-              fontWeight: 'bold',
-              color: '#F8FAFC',
-            }}>
-              ChadSwap
-            </span>
-          </div>
-        </h1>
+            ChadSwap
+          </span>
+        </div>
 
-        {/* Center - Wallet Address ← THIS WAS MISSING */}
+        {/* Wallet Address */}
         <div style={{
           display: 'flex',
           alignItems: 'center',
@@ -112,14 +134,12 @@ export default function Dashboard() {
           borderRadius: '20px',
           border: '1px solid #334155',
         }}>
-          {/* Green dot = connected */}
           <div style={{
             width: '8px',
             height: '8px',
             borderRadius: '50%',
             backgroundColor: '#22C55E',
           }} />
-          {/* Wallet address */}
           <span style={{
             color: '#F8FAFC',
             fontSize: '14px',
@@ -127,7 +147,6 @@ export default function Dashboard() {
           }}>
             {truncateAddress(address)}
           </span>
-          {/* SOL badge */}
           <span style={{
             backgroundColor: '#9945FF',
             color: 'white',
@@ -140,7 +159,6 @@ export default function Dashboard() {
           </span>
         </div>
 
-        {/* Right - Logout */}
         <button
           onClick={() => window.location.href = '/logout'}
           style={{
@@ -166,7 +184,7 @@ export default function Dashboard() {
         height: 'calc(100vh - 120px)',
       }}>
 
-        {/* Left Panel - Trending Tokens */}
+        {/* Left Panel - Real Trending Tokens */}
         <div style={{
           width: '240px',
           backgroundColor: '#1E293B',
@@ -185,40 +203,64 @@ export default function Dashboard() {
           }}>
             🔥 Trending
           </h2>
-          {trendingTokens.map((token) => (
-            <div
-              key={token.symbol}
-              style={{
-                padding: '12px',
-                marginBottom: '8px',
-                backgroundColor: '#0F172A',
-                borderRadius: '8px',
-                cursor: 'pointer',
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-              onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
-              onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
-            >
-              <div>
-                <div style={{ fontWeight: 'bold', fontSize: '14px' }}>
-                  {token.symbol}
-                </div>
-                <div style={{ color: '#94A3B8', fontSize: '12px' }}>
-                  ${token.price}
-                </div>
-              </div>
-              <span style={{
-                color: token.change >= 0 ? '#22C55E' : '#EF4444',
-                fontSize: '12px',
-                fontWeight: 'bold',
-              }}>
-                {token.change >= 0 ? '▲' : '▼'}
-                {Math.abs(token.change).toFixed(1)}%
-              </span>
+
+          {loading ? (
+            <div style={{ color: '#94A3B8', fontSize: '14px' }}>
+              Loading tokens...
             </div>
-          ))}
+          ) : (
+            tokens.slice(0, 15).map((token) => (
+              <div
+                key={token.address}
+                style={{
+                  padding: '12px',
+                  marginBottom: '8px',
+                  backgroundColor: '#0F172A',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  justifyContent: 'space-between',
+                  alignItems: 'center',
+                }}
+                onMouseOver={(e) => e.currentTarget.style.backgroundColor = '#2563EB'}
+                onMouseOut={(e) => e.currentTarget.style.backgroundColor = '#0F172A'}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                  {/* Token Logo */}
+                  {token.logoURI && (
+                    <img
+                      src={token.logoURI}
+                      alt={token.symbol}
+                      width={24}
+                      height={24}
+                      style={{ borderRadius: '50%' }}
+                      onError={(e) => {
+                        e.currentTarget.style.display = 'none';
+                      }}
+                    />
+                  )}
+                  <div>
+                    <div style={{ fontWeight: 'bold', fontSize: '13px' }}>
+                      {token.symbol}
+                    </div>
+                    <div style={{ color: '#94A3B8', fontSize: '11px' }}>
+                      ${token.price < 0.01
+                        ? token.price.toFixed(6)
+                        : token.price.toFixed(4)}
+                    </div>
+                  </div>
+                </div>
+                <span style={{
+                  color: token.price24hChangePercent >= 0 ? '#22C55E' : '#EF4444',
+                  fontSize: '12px',
+                  fontWeight: 'bold',
+                }}>
+                  {token.price24hChangePercent >= 0 ? '▲' : '▼'}
+                  {Math.abs(token.price24hChangePercent).toFixed(1)}%
+                </span>
+              </div>
+            ))
+          )}
         </div>
 
         {/* Middle Panel - Chart */}
@@ -337,7 +379,9 @@ export default function Dashboard() {
       </div>
 
       {/* Bottom Banner */}
-      <TokenBanner tokens={trendingTokens} direction="right" />
+      {bannerTokens.length > 0 && (
+        <TokenBanner tokens={bannerTokens} direction="right" />
+      )}
 
     </div>
   );
